@@ -35,8 +35,8 @@ from huggingsound import SpeechRecognitionModel
 #
 #
 if __name__ == "__main__":
-    detector = SpeechRecognitionModel("./data/model_settings")
-    # detector.model.save_pretrained('./data/model_settings')
-    # detector.processor.save_pretrained('./data/processor_settings')
+    detector = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-russian")
+    detector.model.save_pretrained('./data/model_settings')
+    detector.processor.save_pretrained('./data/processor_settings')
 #     # detector.processor = Wav2Vec2Processor.from_pretrained("/content/gdrive/MyDrive/wav2vec2-large-xlsr-russian-demo")
 #     # detector.model.save_pretrained('/content/gdrive/MyDrive/wav2vec2-large-xlsr-russian-demo')
