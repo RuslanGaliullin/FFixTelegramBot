@@ -5,6 +5,8 @@ from telebot import types
 bot = telebot.TeleBot("6189522732:AAE6lLTknaQcz008aDRykaiFrkwnE1OJAN8", parse_mode=None)
 split_string = 'SL96illlSfCB5zP'
 files = []
+if not os.path.isdir('recieved_files'):
+    os.mkdir('recieved_files')
 
 
 @bot.message_handler(commands=['start'])
