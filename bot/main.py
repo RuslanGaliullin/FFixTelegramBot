@@ -4,6 +4,7 @@ from telebot import types
 
 bot = telebot.TeleBot("6189522732:AAE6lLTknaQcz008aDRykaiFrkwnE1OJAN8", parse_mode=None)
 split_string = 'SL96illlSfCB5zP'
+files = []
 
 
 @bot.message_handler(commands=['start'])
@@ -40,9 +41,10 @@ def message_reply(message):
     downloaded_file = bot.download_file(file_info.file_path)
     with open(path_to_file, 'wb') as f:
         f.write(downloaded_file)
-    beep = types.InlineKeyboardButton('Запикать', callback_data='b' + path_to_file)
-    silence = types.InlineKeyboardButton('Приглушить', callback_data='s' + path_to_file)
-    cancel = types.InlineKeyboardButton('Отменить обработку', callback_data='c' + path_to_file)
+    files.append(path_to_file)
+    beep = types.InlineKeyboardButton('Запикать', callback_data='b' + str(len(files) - 1))
+    silence = types.InlineKeyboardButton('Приглушить', callback_data='s' + str(len(files) - 1))
+    cancel = types.InlineKeyboardButton('Отменить обработку', callback_data='c' + str(len(files) - 1))
     buttons = types.InlineKeyboardMarkup([[beep, silence], [cancel]])
     bot.send_message(message.chat.id, 'Выберите необходимое действие', reply_markup=buttons)
 
@@ -53,19 +55,24 @@ def answer_callback_query(callback_query: types.CallbackQuery):
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
     bot.send_message(callback_query.from_user.id, 'Выполняется обработка файла')
-    with open(callback_query.data[1:], 'rb') as file:
+    file_path = files[int(callback_query.data[1:])]
+    with open(file_path, 'rb') as file:
         f = file.read()
-    bot.send_document(callback_query.from_user.id, f, visible_file_name=callback_query.data[1:].split(split_string)[1])
-    os.remove(callback_query.data[1:])
+
+    # обработка файла
+
+    bot.send_document(callback_query.from_user.id, f, visible_file_name=file_path.split(split_string)[1])
+    os.remove(file_path)
 
 
 @bot.callback_query_handler(func=lambda c: c.data[0] == "c")
 def answer_callback_query(callback_query: types.CallbackQuery):
     bot.answer_callback_query(callback_query.id)
+    file_path = files[int(callback_query.data[1:])]
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
     bot.send_message(callback_query.from_user.id, 'Обработка отменена')
-    os.remove(callback_query.data[1:])
+    os.remove(file_path)
 
 
 bot.infinity_polling(none_stop=True)
