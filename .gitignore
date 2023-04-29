@@ -1,4 +1,4 @@
 /venv
 .DS_Store
 /data/model_settings
-/model_settings
+/model_settings/model_checkpoints/pytorch_model.bin
