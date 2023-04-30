@@ -23,7 +23,7 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
         for i in words:
             result_code_to_word[soundex.transform(i)] = i
             result_word_to_code[i] = soundex.transform(i)
-        return result_code_to_word, result_code_to_word
+        return result_code_to_word, result_word_to_code
 
     def __cover_by_sound(self, samples, words_to_delete, mode):
         if mode == 's':
@@ -31,7 +31,7 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
                 samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
         if mode == 'b':
             for i in words_to_delete:
-                samples[i[0]:i[1]] = librosa.tone(800, i[1] - i[0], sr=16000)
+                samples[i[0]:i[1]] = librosa.tone(800, length = i[1] - i[0], sr=16000)
 
     def __init__(self):
         super().__init__("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
@@ -68,62 +68,55 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
 
     def __ow_probability(self, word: str, probabilities: list[float]) -> float:
         result = 0
-        word = RussianSoundex(delete_first_letter=True).transform(word)
-        for ow in self.__phonetic_word_codes.keys():
-            indexes = pylcs.lcs_sequence_idx(ow, word)
-            counter = 0
+        for ow in self.__phonetic_word_codes[1].keys():
+            indexes = pylcs.lcs_sequence_idx(word, ow)
             probability = 0
             for index, value in enumerate(indexes):
-                if value == -1:
+                if value != -1:
                     probability += probabilities[index]
-                    counter += 1
-                else:
-                    probability += 10 * probabilities[index]
-                    counter += 10
-            probability = (probability / counter) ** Levenshtein.distance(ow, word)
-            result = max(probability, result)
+            dist = Levenshtein.distance(ow, word)
+            probability = probability / max(len(word), len(ow))
+            result = max((probability / (dist + 1) ** 0.25) ** dist, result)
         return int(result * 10) / 10
 
     # TODO
     def __find_words(self, transcribe_result: list[dir]) -> list[tuple]:
         o_words = []
         sentence = transcribe_result[0]['transcription']
-        probabilities = [value for index, value in enumerate(transcribe_result[0]['probabilities']) if
-                         sentence[index] != ' ']
-        start_timestamps = [value for index, value in enumerate(transcribe_result[0]["start_timestamps"]) if
-                            sentence[index] != ' ']
-        end_timestamps = [value for index, value in enumerate(transcribe_result[0]["end_timestamps"]) if
-                          sentence[index] != ' ']
-        sentence = ''.join([value for index, value in enumerate(sentence) if
-                            sentence[index] != ' '])
+        print(sentence)
+        probabilities = transcribe_result[0]['probabilities']
+        start_timestamps = transcribe_result[0]["start_timestamps"]
+        end_timestamps = transcribe_result[0]["end_timestamps"]
 
         for length in range(2, 8):
             for i in range(0, len(sentence) - length):
                 probability = self.__ow_probability(sentence[i:(i + length)], probabilities[i:(i + length)])
                 if probability >= 0.5:
                     o_words.append((probability, length, i))
-        o_words.sort(reverse=True)
+        o_words.sort()
         ow_timestamps = []
         recognized_ow_indexes = []
         while len(o_words) != 0:
             word = o_words.pop()
-            word = (word[1], word[1] + word[2] - 1)
+            p = word[0]
+            word = (word[2], word[2] + word[1] - 1)
             is_valid = True
             for w in recognized_ow_indexes:
                 if not ((word[0] < w[0] and word[1] < w[0]) or (w[0] < word[0] and w[1] < word[0])):
                     is_valid = False
             if is_valid:
+                print(p)
+                print(sentence[word[0]:(word[1] + 1)])
                 recognized_ow_indexes.append(word)
                 ow_timestamps.append((start_timestamps[word[0]] * 16, end_timestamps[word[1]] * 16))
-        print(ow_timestamps)
         return ow_timestamps
 
 
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
-    a = detector.mute_words("/Users/ruslangaliullin/Downloads/test_vlad_asmr.wav", "silence")
+    a = detector.mute_words("/home/vladislav/Files/Git/FFixTelegramBot/data/audio/audio_36.wav", "b")
     print(a)
-    # playsound("/Users/ruslangaliullin/FFixTelegramBot/data/audio/ressult_awesome_test.wav")
+    playsound("/home/vladislav/Files/Git/FFixTelegramBot/data/audio/result_audio_36.wav")
 # detector = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-russian")
 # detector.model.save_pretrained('./data/model_settings')
 # detector.processor.save_pretrained('./data/processor_settings')
