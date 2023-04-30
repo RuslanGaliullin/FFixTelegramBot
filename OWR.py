@@ -1,15 +1,25 @@
 import json
 import os
+import sys
+
 from huggingsound import SpeechRecognitionModel
 import librosa
 import Levenshtein
 import soundfile as sf
-from transformers import AutoModelForCTC, Wav2Vec2Processor
 from fonetika.soundex import RussianSoundex
-from fonetika.distance import PhoneticsInnerLanguageDistance
 import numpy as np
 from playsound import playsound
 import pylcs
+import logging
+
+# Setup logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger.setLevel(logging.INFO)
 
 
 class ObscenityWordsRecognizer:
@@ -26,7 +36,7 @@ class ObscenityWordsRecognizer:
         return result_code_to_word, result_word_to_code
 
     @staticmethod
-    def __cover_by_sound(samples, words_to_delete, mode, original_sr):
+    def __cover_by_sound(samples, words_to_delete, mode):
         if mode == 's':
             for i in words_to_delete:
                 samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
@@ -39,18 +49,18 @@ class ObscenityWordsRecognizer:
         self.__phonetic_word_codes = self.__get_phonetic_for_words("data/obscenity_words.json")
 
     def mute_words(self, audio_path: str, mode):
-        origin_samples, origin_sr = librosa.load(audio_path)
-        origin_sr = librosa.get_samplerate(audio_path)
-
+        origin_samples, origin_sr = librosa.load(audio_path, mono=True, sr=None)  # TODO deal with number of channels
+        logger.info(f"Audio is loaded with {origin_sr} sample rate")
         resampled_audio = self.resample_audio(audio_path, 16000)
-        y, sr = librosa.load(resampled_audio, mono=True, sr=16000)
 
-        words_to_delete = self.__find_words(self.ASR.transcribe([resampled_audio]))
-        self.__cover_by_sound(y, words_to_delete, mode, origin_sr)
+        # y, sr = librosa.load(resampled_audio, mono=True, sr=16000)
+
+        words_to_delete = self.__find_words(self.ASR.transcribe([resampled_audio]), origin_sr)
+        self.__cover_by_sound(origin_samples, words_to_delete, mode)
 
         directory = os.path.dirname(audio_path)
         full_name = os.path.basename(audio_path)
-        sf.write(os.path.join(directory, full_name), origin_samples, origin_sr, format='wav', subtype="PCM_16")
+        sf.write(os.path.join(directory, "result_" + full_name), origin_samples, origin_sr, format='wav')
 
         os.remove(resampled_audio)
         return os.path.join(directory, "result_" + full_name)
@@ -81,10 +91,10 @@ class ObscenityWordsRecognizer:
         return int(result * 10) / 10
 
     # TODO
-    def __find_words(self, transcribe_result: list[dir]) -> list[tuple]:
+    def __find_words(self, transcribe_result: list[dir], sample_rate) -> list[tuple]:
         o_words = []
         sentence = transcribe_result[0]['transcription']
-        print(sentence)
+        logger.info(f"Transcription: {sentence}")
         probabilities = transcribe_result[0]['probabilities']
         start_timestamps = transcribe_result[0]["start_timestamps"]
         end_timestamps = transcribe_result[0]["end_timestamps"]
@@ -106,17 +116,18 @@ class ObscenityWordsRecognizer:
                 if not ((word[0] < w[0] and word[1] < w[0]) or (w[0] < word[0] and w[1] < word[0])):
                     is_valid = False
             if is_valid:
-                print(p)
-                print(sentence[word[0]:(word[1] + 1)])
+                logger.info(f"Detected word: {sentence[word[0]:(word[1] + 1)]}  Probability: {p}")
                 recognized_ow_indexes.append(word)
-                ow_timestamps.append((start_timestamps[word[0]] * 16 - 16, end_timestamps[word[1]] * 16 + 16))
+                ow_timestamps.append(
+                    (start_timestamps[word[0]] * (sample_rate // 1000) - (sample_rate // 1000),
+                     end_timestamps[word[1]] * (sample_rate // 1000) + (sample_rate // 1000)))
         return ow_timestamps
 
 
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
     dir_path = os.path.join(os.getcwd(), "data", "audio")
-    file_name = "audio_52.wav"
-    a = detector.mute_words(dir_path + file_name, "b")
+    file_name = "test_sample_32k.wav"
+    a = detector.mute_words(os.path.join(dir_path, file_name), "s")
     print(a)
     playsound(os.path.join(dir_path, "result_" + file_name))
