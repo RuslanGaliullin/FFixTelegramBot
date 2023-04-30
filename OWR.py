@@ -14,14 +14,16 @@ import pylcs
 
 class ObscenityWordsRecognizer(SpeechRecognitionModel):
     @staticmethod
-    def __get_phonetic_for_words(path_to_words: str) -> dict[str, str]:
+    def __get_phonetic_for_words(path_to_words: str) -> tuple[dict[str, str], dict[str, str]]:
         soundex = RussianSoundex(delete_first_letter=True)
-        result = {}
+        result_word_to_code = {}
+        result_code_to_word = {}
         with open(path_to_words, 'rb') as fp:
             words = json.load(fp)
         for i in words:
-            result[soundex.transform(i)] = i
-        return result
+            result_code_to_word[soundex.transform(i)] = i
+            result_word_to_code[i] = soundex.transform(i)
+        return result_code_to_word, result_code_to_word
 
     def __cover_by_sound(self, samples, words_to_delete, mode):
         if mode == 's':
@@ -72,7 +74,7 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
             counter = 0
             probability = 0
             for index, value in enumerate(indexes):
-                if (value == -1):
+                if value == -1:
                     probability += probabilities[index]
                     counter += 1
                 else:
@@ -92,26 +94,26 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
                             sentence[index] != ' ']
         end_timestamps = [value for index, value in enumerate(transcribe_result[0]["end_timestamps"]) if
                           sentence[index] != ' ']
-        sentence = str([value for index, value in enumerate(sentence) if
-                        sentence[index] != ' '])
+        sentence = ''.join([value for index, value in enumerate(sentence) if
+                            sentence[index] != ' '])
 
         for length in range(2, 8):
             for i in range(0, len(sentence) - length):
                 probability = self.__ow_probability(sentence[i:(i + length)], probabilities[i:(i + length)])
-                if (probability >= 0.5):
+                if probability >= 0.5:
                     o_words.append((probability, length, i))
         o_words.sort(reverse=True)
         ow_timestamps = []
-        recongnized_ow_indexes = []
+        recognized_ow_indexes = []
         while len(o_words) != 0:
             word = o_words.pop()
             word = (word[1], word[1] + word[2] - 1)
             is_valid = True
-            for w in recongnized_ow_indexes:
+            for w in recognized_ow_indexes:
                 if not ((word[0] < w[0] and word[1] < w[0]) or (w[0] < word[0] and w[1] < word[0])):
                     is_valid = False
-            if (is_valid):
-                recongnized_ow_indexes.append(word)
+            if is_valid:
+                recognized_ow_indexes.append(word)
                 ow_timestamps.append((start_timestamps[word[0]] * 16, end_timestamps[word[1]] * 16))
         print(ow_timestamps)
         return ow_timestamps
@@ -119,9 +121,9 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
 
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
-    a = detector.mute_words("/Users/ruslangaliullin/FFixTelegramBot/data/audio/awesome_test.wav", "silence")
+    a = detector.mute_words("/Users/ruslangaliullin/Downloads/test_vlad_asmr.wav", "silence")
     print(a)
-    playsound("/Users/ruslangaliullin/FFixTelegramBot/data/audio/ressult_awesome_test.wav")
+    # playsound("/Users/ruslangaliullin/FFixTelegramBot/data/audio/ressult_awesome_test.wav")
 # detector = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-russian")
 # detector.model.save_pretrained('./data/model_settings')
 # detector.processor.save_pretrained('./data/processor_settings')
