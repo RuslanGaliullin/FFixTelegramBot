@@ -2,15 +2,34 @@ import json
 import os
 from huggingsound import SpeechRecognitionModel
 import librosa
+import Levenshtein
 import soundfile as sf
 from transformers import AutoModelForCTC, Wav2Vec2Processor
 from fonetika.soundex import RussianSoundex
 from fonetika.distance import PhoneticsInnerLanguageDistance
 import numpy as np
 from playsound import playsound
+import pylcs
 
 
 class ObscenityWordsRecognizer(SpeechRecognitionModel):
+    @staticmethod
+    def __get_phonetic_for_words(path_to_words: str) -> dict[str, str]:
+        soundex = RussianSoundex(delete_first_letter=True)
+        result = {}
+        with open(path_to_words, 'rb') as fp:
+            words = json.load(fp)
+        for i in words:
+            result[soundex.transform(i)] = i
+        return result
+
+    def __cover_by_sound(self, samples, words_to_delete, mode):
+        if mode == 's':
+            for i in words_to_delete:
+                samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
+        if mode == 'b':
+            for i in words_to_delete:
+                samples[i[0]:i[1]] = librosa.tone(800, i[1] - i[0], sr=16000)
 
     def __init__(self):
         super().__init__("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
@@ -45,39 +64,57 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
         sf.write(os.path.join(directory, "RS_" + full_name), new_samples, target_rate, format='wav', subtype="PCM_16")
         return os.path.join(directory, "RS_" + full_name)
 
+    def __ow_probability(self, word: str, probabilities: list[float]) -> float:
+        result = 0
+        word = RussianSoundex(delete_first_letter=True).transform(word)
+        for ow in self.__phonetic_word_codes.keys():
+            indexes = pylcs.lcs_sequence_idx(ow, word)
+            counter = 0
+            probability = 0
+            for index, value in enumerate(indexes):
+                if (value == -1):
+                    probability += probabilities[index]
+                    counter += 1
+                else:
+                    probability += 10 * probabilities[index]
+                    counter += 10
+            probability = (probability / counter) ** Levenshtein.distance(ow, word)
+            result = max(probability, result)
+        return int(result * 10) / 10
+
     # TODO
     def __find_words(self, transcribe_result: list[dir]) -> list[tuple]:
-        soundex = RussianSoundex(delete_first_letter=True)
-        result = []
-        sentence = transcribe_result[0]["transcription"].split()
-        current_word_index = 0
-        print(sentence)
-        for index, value in enumerate(transcribe_result[0]['transcription'] + ' '):
-            if value == ' ':
-                if soundex.transform(sentence[current_word_index]) in self.__phonetic_word_codes.keys():
-                    print(transcribe_result[0]["transcription"][index - len(sentence[current_word_index])])
-                    print(transcribe_result[0]["transcription"][index - 1])
-                    print(transcribe_result[0]["end_timestamps"][-1] * 16)
-                    result.append(
-                        (transcribe_result[0]["start_timestamps"][index - len(sentence[current_word_index])] * 16,
-                         transcribe_result[0]["end_timestamps"][index - 1] * 16))
-                current_word_index += 1
-        print(result)
-        return result
+        o_words = []
+        sentence = transcribe_result[0]['transcription']
+        probabilities = [value for index, value in enumerate(transcribe_result[0]['probabilities']) if
+                         sentence[index] != ' ']
+        start_timestamps = [value for index, value in enumerate(transcribe_result[0]["start_timestamps"]) if
+                            sentence[index] != ' ']
+        end_timestamps = [value for index, value in enumerate(transcribe_result[0]["end_timestamps"]) if
+                          sentence[index] != ' ']
+        sentence = str([value for index, value in enumerate(sentence) if
+                        sentence[index] != ' '])
 
-    @staticmethod
-    def __get_phonetic_for_words(path_to_words: str) -> dict[str, str]:
-        soundex = RussianSoundex(delete_first_letter=True)
-        result = {}
-        with open(path_to_words, 'rb') as fp:
-            words = json.load(fp)
-        for i in words:
-            result[soundex.transform(i)] = i
-        return result
-
-    def __cover_by_sound(self, samples, words_to_delete, mode):
-        for i in words_to_delete:
-            samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
+        for length in range(2, 8):
+            for i in range(0, len(sentence) - length):
+                probability = self.__ow_probability(sentence[i:(i + length)], probabilities[i:(i + length)])
+                if (probability >= 0.5):
+                    o_words.append((probability, length, i))
+        o_words.sort(reverse=True)
+        ow_timestamps = []
+        recongnized_ow_indexes = []
+        while len(o_words) != 0:
+            word = o_words.pop()
+            word = (word[1], word[1] + word[2] - 1)
+            is_valid = True
+            for w in recongnized_ow_indexes:
+                if not ((word[0] < w[0] and word[1] < w[0]) or (w[0] < word[0] and w[1] < word[0])):
+                    is_valid = False
+            if (is_valid):
+                recongnized_ow_indexes.append(word)
+                ow_timestamps.append((start_timestamps[word[0]] * 16, end_timestamps[word[1]] * 16))
+        print(ow_timestamps)
+        return ow_timestamps
 
 
 if __name__ == "__main__":
