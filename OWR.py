@@ -68,15 +68,17 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
 
     def __ow_probability(self, word: str, probabilities: list[float]) -> float:
         result = 0
+        s_len = int(len(word) / 3)
         for ow in self.__phonetic_word_codes[1].keys():
-            indexes = pylcs.lcs_sequence_idx(word, ow)
-            probability = 0
-            for index, value in enumerate(indexes):
-                if value != -1:
-                    probability += probabilities[index]
-            dist = Levenshtein.distance(ow, word)
-            probability = probability / max(len(word), len(ow))
-            result = max((probability / (dist + 1) ** 0.25) ** dist, result)
+            if (word[0:s_len] == ow[0:s_len]):
+                indexes = pylcs.lcs_sequence_idx(word, ow)
+                probability = 0
+                for index, value in enumerate(indexes):
+                    if value != -1:
+                        probability += probabilities[index]
+                dist = Levenshtein.distance(ow, word)
+                probability = probability / max(len(word), len(ow))
+                result = max((probability / (dist + 1) ** 0.25) ** dist, result)
         return int(result * 10) / 10
 
     # TODO
@@ -115,7 +117,7 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
     dir_path = "/home/vladislav/Files/Git/FFixTelegramBot/data/audio/"
-    file_name = "audio_32.wav"
+    file_name = "audio_52.wav"
     a = detector.mute_words(dir_path + file_name, "b")
     print(a)
     playsound(dir_path + "result_" + file_name)
