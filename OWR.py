@@ -12,7 +12,7 @@ from playsound import playsound
 import pylcs
 
 
-class ObscenityWordsRecognizer(SpeechRecognitionModel):
+class ObscenityWordsRecognizer:
     @staticmethod
     def __get_phonetic_for_words(path_to_words: str) -> tuple[dict[str, str], dict[str, str]]:
         soundex = RussianSoundex(delete_first_letter=True)
@@ -25,7 +25,8 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
             result_word_to_code[i] = soundex.transform(i)
         return result_code_to_word, result_word_to_code
 
-    def __cover_by_sound(self, samples, words_to_delete, mode):
+    @staticmethod
+    def __cover_by_sound(samples, words_to_delete, mode, original_sr):
         if mode == 's':
             for i in words_to_delete:
                 samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
@@ -34,33 +35,31 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
                 samples[i[0]:i[1]] = librosa.tone(800, length=i[1] - i[0], sr=16000)
 
     def __init__(self):
-        super().__init__("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
+        self.ASR = SpeechRecognitionModel("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
         self.__phonetic_word_codes = self.__get_phonetic_for_words("data/obscenity_words.json")
-        # processor = Wav2Vec2Processor.from_pretrained("rmgaliullin/wav2vec2-large-xlsr-53-demo-colab")
 
     def mute_words(self, audio_path: str, mode):
-        location = os.path.dirname(os.path.realpath(__file__))
+        origin_samples, origin_sr = librosa.load(audio_path)
+        origin_sr = librosa.get_samplerate(audio_path)
+
         resampled_audio = self.resample_audio(audio_path, 16000)
-        transcribe = self.transcribe([resampled_audio])
         y, sr = librosa.load(resampled_audio, mono=True, sr=16000)
-        words_to_delete = self.__find_words(transcribe)
-        self.__cover_by_sound(y, words_to_delete, mode)
-        print(len(y), sr)
+
+        words_to_delete = self.__find_words(self.ASR.transcribe([resampled_audio]))
+        self.__cover_by_sound(y, words_to_delete, mode, origin_sr)
+
         directory = os.path.dirname(audio_path)
         full_name = os.path.basename(audio_path)
-        sf.write(os.path.join(directory, "result_" + full_name), y, sr, format='wav', subtype="PCM_16")
+        sf.write(os.path.join(directory, full_name), origin_samples, origin_sr, format='wav', subtype="PCM_16")
 
-        # y, sr = librosa.load(os.path.join(directory, "result_" + full_name), mono=True, sr=16000)
-
+        os.remove(resampled_audio)
         return os.path.join(directory, "result_" + full_name)
 
     @staticmethod
     def resample_audio(audio_path: str, target_rate: int) -> str:
         directory = os.path.dirname(audio_path)
         full_name = os.path.basename(audio_path)
-        # TODO
         y, sr = librosa.load(audio_path)
-        # print(audio_path, sr)
         y = librosa.to_mono(y)
         new_samples = librosa.resample(y, sr, target_rate)
         sf.write(os.path.join(directory, "RS_" + full_name), new_samples, target_rate, format='wav', subtype="PCM_16")
@@ -70,7 +69,7 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
         result = 0
         s_len = int(len(word) / 3)
         for ow in self.__phonetic_word_codes[1].keys():
-            if (word[0:s_len] == ow[0:s_len]):
+            if word[0:s_len] == ow[0:s_len]:
                 indexes = pylcs.lcs_sequence_idx(word, ow)
                 probability = 0
                 for index, value in enumerate(indexes):
@@ -116,13 +115,8 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
 
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
-    dir_path = "/home/vladislav/Files/Git/FFixTelegramBot/data/audio/"
+    dir_path = os.path.join(os.getcwd(), "data", "audio")
     file_name = "audio_52.wav"
     a = detector.mute_words(dir_path + file_name, "b")
     print(a)
-    playsound(dir_path + "result_" + file_name)
-# detector = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-russian")
-# detector.model.save_pretrained('./data/model_settings')
-# detector.processor.save_pretrained('./data/processor_settings')
-# detector.processor = Wav2Vec2Processor.from_pretrained("rmgaliullin/wav2vec2-large-xlsr-53-demo-colab")
-#     # detector.model.save_pretrained('/content/gdrive/MyDrive/wav2vec2-large-xlsr-russian-demo')
+    playsound(os.path.join(dir_path, "result_" + file_name))
