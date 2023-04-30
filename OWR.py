@@ -31,7 +31,7 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
                 samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
         if mode == 'b':
             for i in words_to_delete:
-                samples[i[0]:i[1]] = librosa.tone(800, length = i[1] - i[0], sr=16000)
+                samples[i[0]:i[1]] = librosa.tone(800, length=i[1] - i[0], sr=16000)
 
     def __init__(self):
         super().__init__("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
@@ -89,7 +89,7 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
         end_timestamps = transcribe_result[0]["end_timestamps"]
 
         for length in range(2, 8):
-            for i in range(0, len(sentence) - length):
+            for i in range(0, len(sentence) - length + 1):
                 probability = self.__ow_probability(sentence[i:(i + length)], probabilities[i:(i + length)])
                 if probability >= 0.5:
                     o_words.append((probability, length, i))
@@ -108,15 +108,17 @@ class ObscenityWordsRecognizer(SpeechRecognitionModel):
                 print(p)
                 print(sentence[word[0]:(word[1] + 1)])
                 recognized_ow_indexes.append(word)
-                ow_timestamps.append((start_timestamps[word[0]] * 16, end_timestamps[word[1]] * 16))
+                ow_timestamps.append((start_timestamps[word[0]] * 16 - 16, end_timestamps[word[1]] * 16 + 16))
         return ow_timestamps
 
 
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
-    a = detector.mute_words("/home/vladislav/Files/Git/FFixTelegramBot/data/audio/audio_36.wav", "b")
+    dir_path = "/home/vladislav/Files/Git/FFixTelegramBot/data/audio/"
+    file_name = "audio_32.wav"
+    a = detector.mute_words(dir_path + file_name, "b")
     print(a)
-    playsound("/home/vladislav/Files/Git/FFixTelegramBot/data/audio/result_audio_36.wav")
+    playsound(dir_path + "result_" + file_name)
 # detector = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-russian")
 # detector.model.save_pretrained('./data/model_settings')
 # detector.processor.save_pretrained('./data/processor_settings')
