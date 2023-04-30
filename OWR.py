@@ -36,21 +36,26 @@ class ObscenityWordsRecognizer:
         return result_code_to_word, result_word_to_code
 
     @staticmethod
-    def __cover_by_sound(samples, words_to_delete, mode):
+    def __cover_by_sound(samples: np.ndarray[np.float32], words_to_delete: list[tuple], mode: str) -> None:
         if mode == 's':
             for i in words_to_delete:
-                samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
+                for channel in range(samples.ndim):
+                    samples[i[0]:i[1], channel] = np.zeros(i[1] - i[0])
         if mode == 'b':
             for i in words_to_delete:
-                samples[i[0]:i[1]] = librosa.tone(800, length=i[1] - i[0], sr=16000)
+                for channel in range(samples.ndim):
+                    samples[i[0]:i[1], channel] = librosa.tone(800, length=i[1] - i[0], sr=16000)
 
     def __init__(self):
         self.ASR = SpeechRecognitionModel("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
         self.__phonetic_word_codes = self.__get_phonetic_for_words("data/obscenity_words.json")
 
-    def mute_words(self, audio_path: str, mode):
-        origin_samples, origin_sr = librosa.load(audio_path, mono=True, sr=None)  # TODO deal with number of channels
-        logger.info(f"Audio is loaded with {origin_sr} sample rate")
+    def mute_words(self, audio_path: str, mode: str):
+        audio_file = sf.SoundFile(audio_path)
+        origin_samples = audio_file.read()
+        origin_sr = audio_file.samplerate
+        logger.info(
+            f"Audio is loaded with {origin_sr} sample rate, {audio_file.channels} channels, type {audio_file.subtype}")
         resampled_audio = self.resample_audio(audio_path, 16000)
 
         # y, sr = librosa.load(resampled_audio, mono=True, sr=16000)
@@ -60,7 +65,9 @@ class ObscenityWordsRecognizer:
 
         directory = os.path.dirname(audio_path)
         full_name = os.path.basename(audio_path)
-        sf.write(os.path.join(directory, "result_" + full_name), origin_samples, origin_sr, format='wav')
+
+        sf.write(os.path.join(directory, "result_" + full_name), origin_samples, origin_sr, format='wav',
+                 subtype=audio_file.subtype)
 
         os.remove(resampled_audio)
         return os.path.join(directory, "result_" + full_name)
@@ -91,7 +98,7 @@ class ObscenityWordsRecognizer:
         return int(result * 10) / 10
 
     # TODO
-    def __find_words(self, transcribe_result: list[dir], sample_rate) -> list[tuple]:
+    def __find_words(self, transcribe_result: list[dir], sample_rate: int) -> list[tuple]:
         o_words = []
         sentence = transcribe_result[0]['transcription']
         logger.info(f"Transcription: {sentence}")
@@ -127,7 +134,7 @@ class ObscenityWordsRecognizer:
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
     dir_path = os.path.join(os.getcwd(), "data", "audio")
-    file_name = "test_sample_32k.wav"
+    file_name = "test_sample_44_1khz_stereo.wav"
     a = detector.mute_words(os.path.join(dir_path, file_name), "s")
     print(a)
     playsound(os.path.join(dir_path, "result_" + file_name))
