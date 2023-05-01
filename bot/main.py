@@ -12,7 +12,7 @@ if not os.path.isdir('recieved_files'):
 else:
     for file in os.listdir('recieved_files'):
         os.remove(os.path.join('recieved_files', file))
-detector = ObscenityWordsRecognizer("/home/vladislav/Files/Git/FFixTelegramBot/bot/data/obscenity_words.json")
+detector = ObscenityWordsRecognizer("data/obscenity_words.json")
 
 
 @bot.message_handler(commands=['start'])
