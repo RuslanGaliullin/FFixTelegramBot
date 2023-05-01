@@ -11,7 +11,8 @@ if not os.path.isdir('recieved_files'):
     os.mkdir('recieved_files')
 else:
     for file in os.listdir('recieved_files'):
-        os.remove(os.path.join('recieved_files', file))
+        pass  # UNDO
+        # os.remove(os.path.join('recieved_files', file))
 detector = ObscenityWordsRecognizer("data/obscenity_words.json")
 
 
@@ -47,7 +48,7 @@ def voice_message(message):
         f.write(downloaded_file)
 
     AudioSegment.from_ogg(path_to_file).export(path_to_file.split('.')[0] + '.wav', format='wav')
-    os.remove(path_to_file)
+    # os.remove(path_to_file)
     path_to_file = path_to_file.split('.')[0] + '.wav'
     extension = 'v'
 
@@ -72,7 +73,7 @@ def message_reply(message):
     extension = 'w'
     if path_to_file.split('.')[1] == 'mp3':
         AudioSegment.from_mp3(path_to_file).export(path_to_file.split('.')[0] + '.wav', format='wav')
-        os.remove(path_to_file)
+        # os.remove(path_to_file)
         path_to_file = path_to_file.split('.')[0] + '.wav'
         extension = 'm'
     files.append(path_to_file)
@@ -92,16 +93,16 @@ def answer_callback_query(callback_query: types.CallbackQuery):
         bot.send_message(callback_query.from_user.id, 'Выполняется обработка файла')
         file_path = files[int(callback_query.data[2:])]
         result_file_path = detector.mute_words(file_path, callback_query.data[0])
-        os.remove(file_path)
+        # os.remove(file_path)
         file_path = result_file_path
         if callback_query.data[1] == 'm':
             AudioSegment.from_wav(file_path).export(file_path.split('.')[0] + '.mp3', format='mp3')
-            os.remove(file_path)
+            # os.remove(file_path)
             file_path = file_path.split('.')[0] + '.mp3'
 
         if callback_query.data[1] == 'v':
             AudioSegment.from_wav(file_path).export(file_path.split('.')[0] + '.ogg', format='ogg')
-            os.remove(file_path)
+            # os.remove(file_path)
             file_path = file_path.split('.')[0] + '.ogg'
         print(file_path)
         os.rename(file_path, file_path.split(split_string)[1])
@@ -109,9 +110,9 @@ def answer_callback_query(callback_query: types.CallbackQuery):
         file = open(file_path, 'rb')
         bot.send_audio(callback_query.from_user.id, file)
         file.close()
-        os.remove(file_path)
+        # os.remove(file_path)
     else:
-        bot.send_message(callback_query.message.chat.id, 'Файл удалён из системы.')
+        bot.send_message(callback_query.message.chat.id, 'Файл удалён из системы')
 
 
 @bot.callback_query_handler(func=lambda c: c.data[0] == "c")
@@ -122,9 +123,9 @@ def answer_callback_query(callback_query: types.CallbackQuery):
         bot.delete_message(chat_id=callback_query.message.chat.id,
                            message_id=callback_query.message.message_id)
         bot.send_message(callback_query.from_user.id, 'Обработка отменена')
-        os.remove(file_path)
+        # os.remove(file_path)
     else:
-        bot.send_message(callback_query.message.chat.id, 'Файл удалён из системы.')
+        bot.send_message(callback_query.message.chat.id, 'Файл удалён из системы')
 
 
 bot.infinity_polling(none_stop=True)
