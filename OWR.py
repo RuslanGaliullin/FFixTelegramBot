@@ -40,11 +40,17 @@ class ObscenityWordsRecognizer:
     def __cover_by_sound(samples: np.ndarray[np.float32], words_to_delete: list[tuple], mode: str) -> None:
         if mode == 's':
             for i in words_to_delete:
-                samples[i[0]:i[1]] = np.zeros((i[1] - i[0], samples.ndim))
+                if (samples.ndim == 1):
+                    samples[i[0]:i[1]] = np.zeros(i[1] - i[0])
+                else:
+                    samples[i[0]:i[1]] = np.zeros((i[1] - i[0], samples.ndim))
         if mode == 'b':
             for i in words_to_delete:
-                samples[i[0]:i[1]] = np.tile((librosa.tone(600, length=i[1] - i[0], sr=16000)),
-                                             (samples.ndim, 1)).transpose()
+                if (samples.ndim == 1):
+                    samples[i[0]:i[1]] = librosa.tone(600, length=i[1] - i[0], sr=16000)
+                else:
+                    samples[i[0]:i[1]] = np.tile((librosa.tone(600, length=i[1] - i[0], sr=16000)),
+                                                 (samples.ndim, 1)).transpose()
 
     def __init__(self):
         self.ASR = SpeechRecognitionModel("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
@@ -134,7 +140,7 @@ class ObscenityWordsRecognizer:
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
     dir_path = os.path.join(os.getcwd(), "data", "audio")
-    file_name = "ÑÐ»Ð¸ÑÐ°_ÐÐºÐ°Ð´ÐµÐ¼Ð¸ÐºÐ°_ÐÐ½Ð¾ÑÐ¸Ð½Ð°.wav"
-    a = detector.mute_words(os.path.join(dir_path, file_name), "s")
+    file_name = "audio_07.wav"
+    a = detector.mute_words(os.path.join(dir_path, file_name), "о")
     print(a)
     playsound(os.path.join(dir_path, "result_" + file_name))
