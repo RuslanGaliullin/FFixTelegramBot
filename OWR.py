@@ -26,7 +26,7 @@ class ObscenityWordsRecognizer:
     @staticmethod
     def __compare_phonemes(word1: str, word2: str, parts: int) -> bool:
         soundex = RussianSoundex(delete_first_letter=True, reduce_word=True)
-        return soundex.transform(word1[:len(word1) // parts]) == soundex.transform(word2[:len(word1) // parts])
+        return soundex.transform(word1[:len(word1) // parts]) == soundex.transform(word2[:len(word2) // parts])
 
     @staticmethod
     def __get_phonetic_for_words(path_to_words: str) -> tuple[dict[str, str], dict[str, str]]:
