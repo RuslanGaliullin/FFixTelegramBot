@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-
 from huggingsound import SpeechRecognitionModel
 import librosa
 import Levenshtein
@@ -23,10 +22,7 @@ logger.setLevel(logging.INFO)
 
 
 class ObscenityWordsRecognizer:
-    @staticmethod
-    def __compare_phonemes(word1: str, word2: str, parts: int) -> bool:
-        soundex = RussianSoundex(delete_first_letter=True, reduce_word=True)
-        return soundex.transform(word1[:len(word1) // parts]) == soundex.transform(word2[:len(word2) // parts])
+    soundex = RussianSoundex(delete_first_letter=True, reduce_word=True)
 
     @staticmethod
     def __get_phonetic_for_words(path_to_words: str) -> tuple[dict[str, str], dict[str, str]]:
@@ -44,12 +40,11 @@ class ObscenityWordsRecognizer:
     def __cover_by_sound(samples: np.ndarray[np.float32], words_to_delete: list[tuple], mode: str) -> None:
         if mode == 's':
             for i in words_to_delete:
-                for channel in range(samples.ndim):
-                    samples[i[0]:i[1], channel] = np.zeros(i[1] - i[0])
+                samples[i[0]:i[1]] = np.zeros((i[1] - i[0], samples.ndim))
         if mode == 'b':
             for i in words_to_delete:
-                for channel in range(samples.ndim):
-                    samples[i[0]:i[1], channel] = librosa.tone(800, length=i[1] - i[0], sr=16000)
+                samples[i[0]:i[1]] = np.tile((librosa.tone(600, length=i[1] - i[0], sr=16000)),
+                                             (samples.ndim, 1)).transpose()
 
     def __init__(self):
         self.ASR = SpeechRecognitionModel("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
@@ -83,15 +78,16 @@ class ObscenityWordsRecognizer:
         full_name = os.path.basename(audio_path)
         y, sr = librosa.load(audio_path)
         y = librosa.to_mono(y)
-        new_samples = librosa.resample(y, sr, target_rate)
+        new_samples = librosa.resample(y, orig_sr=sr, target_sr=target_rate)
         sf.write(os.path.join(directory, "RS_" + full_name), new_samples, target_rate, format='wav', subtype="PCM_16")
         return os.path.join(directory, "RS_" + full_name)
 
     def __ow_probability(self, word: str, probabilities: list[float]) -> float:
         result = 0
-        s_len = int(len(word) / 3)
+        word_t = ObscenityWordsRecognizer.soundex.transform(word)
+        s_len = int(len(word_t) / 3)
         for ow in self.__phonetic_word_codes[1].keys():
-            if word[0:s_len] == ow[0:s_len]:
+            if word_t[0:s_len] == ObscenityWordsRecognizer.soundex.transform(ow)[0:s_len]:
                 indexes = pylcs.lcs_sequence_idx(word, ow)
                 probability = 0
                 for index, value in enumerate(indexes):
@@ -102,7 +98,6 @@ class ObscenityWordsRecognizer:
                 result = max((probability / (dist + 1) ** 0.25) ** dist, result)
         return int(result * 10) / 10
 
-    # TODO
     def __find_words(self, transcribe_result: list[dir], sample_rate: int) -> list[tuple]:
         o_words = []
         sentence = transcribe_result[0]['transcription']
@@ -128,7 +123,7 @@ class ObscenityWordsRecognizer:
                 if not ((word[0] < w[0] and word[1] < w[0]) or (w[0] < word[0] and w[1] < word[0])):
                     is_valid = False
             if is_valid:
-                logger.info(f"Detected word: {sentence[word[0]:(word[1] + 1)]}  Probability: {p}")
+                logger.info(f"Detected word: {sentence[word[0]:(word[1] + 1)]};  Probability: {p}")
                 recognized_ow_indexes.append(word)
                 ow_timestamps.append(
                     (start_timestamps[word[0]] * (sample_rate // 1000) - (sample_rate // 1000),
@@ -139,7 +134,7 @@ class ObscenityWordsRecognizer:
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
     dir_path = os.path.join(os.getcwd(), "data", "audio")
-    file_name = "test_sample_44_1khz_stereo.wav"
+    file_name = "ÑÐ»Ð¸ÑÐ°_ÐÐºÐ°Ð´ÐµÐ¼Ð¸ÐºÐ°_ÐÐ½Ð¾ÑÐ¸Ð½Ð°.wav"
     a = detector.mute_words(os.path.join(dir_path, file_name), "s")
     print(a)
     playsound(os.path.join(dir_path, "result_" + file_name))
