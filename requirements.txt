@@ -1,3 +1,2 @@
-sklearn
+scikit-learn
 huggingsound
-
