@@ -1,0 +1,4 @@
+pydub>=0.25.0
+pyTelegramBotAPI>=4.11.0
+OWR>=1.0.0
+
