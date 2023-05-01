@@ -140,7 +140,7 @@ class ObscenityWordsRecognizer:
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
     dir_path = os.path.join(os.getcwd(), "data", "audio")
-    file_name = "audio_07.wav"
-    a = detector.mute_words(os.path.join(dir_path, file_name), "о")
+    file_name = "audio_02.wav"
+    a = detector.mute_words(os.path.join(dir_path, file_name), "b")
     print(a)
     playsound(os.path.join(dir_path, "result_" + file_name))
