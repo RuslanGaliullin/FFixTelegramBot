@@ -1,8 +1,5 @@
-import random
-
 from huggingsound import SpeechRecognitionModel, TrainingArguments
 from sklearn.model_selection import train_test_split
-from transformers import AutoModelForCTC, Wav2Vec2Processor
 import os
 
 model_to_train = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-russian", device="cpu")
@@ -19,8 +16,8 @@ for path in os.listdir(transcript_data_dir):
     data.append(
         {"path": os.path.join(audio_data_dir, audio_path), "transcription": text})
 
-
 X_train, X_test = train_test_split(data, test_size=0.33)
+
 
 def run_finetune(model):
     model.finetune(
