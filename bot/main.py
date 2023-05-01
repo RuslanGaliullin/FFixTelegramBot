@@ -2,6 +2,7 @@ import os
 import telebot
 from telebot import types
 from pydub import AudioSegment
+from OWR import ObscenityWordsRecognizer
 
 bot = telebot.TeleBot("6189522732:AAE6lLTknaQcz008aDRykaiFrkwnE1OJAN8", parse_mode=None)
 split_string = 'SL96illlSfCB5zP'
@@ -11,6 +12,7 @@ if not os.path.isdir('recieved_files'):
 else:
     for file in os.listdir('recieved_files'):
         os.remove(os.path.join('recieved_files', file))
+detector = ObscenityWordsRecognizer("/home/vladislav/Files/Git/FFixTelegramBot/bot/data/obscenity_words.json")
 
 
 @bot.message_handler(commands=['start'])
@@ -38,7 +40,6 @@ def send_welcome(message):
 
 @bot.message_handler(content_types=['voice'])
 def voice_message(message):
-    print("dd")
     file_info = bot.get_file(message.voice.file_id)
     path_to_file = 'recieved_files/' + str(file_info.file_unique_id) + split_string + 'voice.ogg'
     downloaded_file = bot.download_file(file_info.file_path)
@@ -87,12 +88,12 @@ def answer_callback_query(callback_query: types.CallbackQuery):
     bot.answer_callback_query(callback_query.id)
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
-    bot.send_message(callback_query.from_user.id, 'Выполняется обработка файла')
-    file_path = files[int(callback_query.data[2:])]
-    if (os.path.isfile(file_path)):
-
-        # обработка файла
-
+    if len(files) > int(callback_query.data[2:]):
+        bot.send_message(callback_query.from_user.id, 'Выполняется обработка файла')
+        file_path = files[int(callback_query.data[2:])]
+        result_file_path = detector.mute_words(file_path, callback_query.data[0])
+        os.remove(file_path)
+        file_path = result_file_path
         if callback_query.data[1] == 'm':
             AudioSegment.from_wav(file_path).export(file_path.split('.')[0] + '.mp3', format='mp3')
             os.remove(file_path)
@@ -103,12 +104,10 @@ def answer_callback_query(callback_query: types.CallbackQuery):
             os.remove(file_path)
             file_path = file_path.split('.')[0] + '.ogg'
         print(file_path)
+        os.rename(file_path, file_path.split(split_string)[1])
+        file_path = file_path.split(split_string)[1]
         file = open(file_path, 'rb')
-
-        if (callback_query.data[1] == 'v'):
-            bot.send_voice(callback_query.from_user.id, file)
-        else:
-            bot.send_document(callback_query.from_user.id, file, visible_file_name=file_path.split(split_string)[1])
+        bot.send_audio(callback_query.from_user.id, file)
         file.close()
         os.remove(file_path)
     else:
@@ -118,8 +117,8 @@ def answer_callback_query(callback_query: types.CallbackQuery):
 @bot.callback_query_handler(func=lambda c: c.data[0] == "c")
 def answer_callback_query(callback_query: types.CallbackQuery):
     bot.answer_callback_query(callback_query.id)
-    file_path = files[int(callback_query.data[2:])]
-    if os.path.isfile(file_path):
+    if len(files) > int(callback_query.data[2:]):
+        file_path = files[int(callback_query.data[2:])]
         bot.delete_message(chat_id=callback_query.message.chat.id,
                            message_id=callback_query.message.message_id)
         bot.send_message(callback_query.from_user.id, 'Обработка отменена')
