@@ -88,7 +88,7 @@ def answer_callback_query(callback_query: types.CallbackQuery):
     bot.answer_callback_query(callback_query.id)
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
-    if len(files) > int(callback_query.data[2:]):
+    if len(files) > int(callback_query.data[2:]) and os.path.exists(files[int(callback_query.data[2:])]):
         bot.send_message(callback_query.from_user.id, 'Выполняется обработка файла')
         file_path = files[int(callback_query.data[2:])]
         result_file_path = detector.mute_words(file_path, callback_query.data[0])
@@ -117,10 +117,10 @@ def answer_callback_query(callback_query: types.CallbackQuery):
 @bot.callback_query_handler(func=lambda c: c.data[0] == "c")
 def answer_callback_query(callback_query: types.CallbackQuery):
     bot.answer_callback_query(callback_query.id)
-    if len(files) > int(callback_query.data[2:]):
+    bot.delete_message(chat_id=callback_query.message.chat.id,
+                       message_id=callback_query.message.message_id)
+    if len(files) > int(callback_query.data[2:]) and os.path.exists(files[int(callback_query.data[2:])]):
         file_path = files[int(callback_query.data[2:])]
-        bot.delete_message(chat_id=callback_query.message.chat.id,
-                           message_id=callback_query.message.message_id)
         bot.send_message(callback_query.from_user.id, 'Обработка отменена')
         os.remove(file_path)
     else:
