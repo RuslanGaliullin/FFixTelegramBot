@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 COPY . .
 RUN apt update && apt -y upgrade
-RUN apt-get install ffmpeg
+RUN apt-get install -y ffmpeg
 RUN apt install -y python3-pip
 RUN apt install -y g++
 
