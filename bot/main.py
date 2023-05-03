@@ -1,8 +1,10 @@
 import os
+
 import telebot
 from telebot import types
 from pydub import AudioSegment
 from OWR import ObscenityWordsRecognizer
+import soundfile
 
 bot = telebot.TeleBot("6189522732:AAE6lLTknaQcz008aDRykaiFrkwnE1OJAN8", parse_mode=None)
 split_string = 'SL96illlSfCB5zP'
@@ -47,7 +49,9 @@ def voice_message(message):
     with open(path_to_file, 'wb') as f:
         f.write(downloaded_file)
 
-    AudioSegment.from_ogg(path_to_file).export(path_to_file.split('.')[0] + '.wav', format='wav')
+    data, sr = soundfile.read(path_to_file)
+    soundfile.write(path_to_file.split('.')[0] + '.wav', data, sr)
+    # AudioSegment.from_ogg(path_to_file).export(path_to_file.split('.')[0] + '.wav', format='wav')
     # os.remove(path_to_file)
     path_to_file = path_to_file.split('.')[0] + '.wav'
     extension = 'v'
@@ -99,16 +103,13 @@ def answer_callback_query(callback_query: types.CallbackQuery):
             AudioSegment.from_wav(file_path).export(file_path.split('.')[0] + '.mp3', format='mp3')
             # os.remove(file_path)
             file_path = file_path.split('.')[0] + '.mp3'
-
-        if callback_query.data[1] == 'v':
-            AudioSegment.from_wav(file_path).export(file_path.split('.')[0] + '.ogg', format='ogg')
-            # os.remove(file_path)
-            file_path = file_path.split('.')[0] + '.ogg'
-        print(file_path)
-        os.rename(file_path, file_path.split(split_string)[1])
-        file_path = file_path.split(split_string)[1]
+        os.rename(file_path, os.path.join('recieved_files', file_path.split(split_string)[1]))
+        file_path = os.path.join('recieved_files', file_path.split(split_string)[1])
         file = open(file_path, 'rb')
-        bot.send_audio(callback_query.from_user.id, file)
+        if callback_query.data[1] == 'v':
+            bot.send_voice(callback_query.from_user.id, file)
+        else:
+            bot.send_audio(callback_query.from_user.id, file)
         file.close()
         # os.remove(file_path)
     else:
