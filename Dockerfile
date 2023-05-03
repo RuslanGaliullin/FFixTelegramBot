@@ -1,6 +1,9 @@
-FROM python:3.9.16-slim-buster
+FROM ubuntu:latest
 COPY . .
-RUN /usr/local/bin/python -m pip install --upgrade pip
-RUN pip install -r requirements.txt
-CMD python ./bot/main.py
+RUN apt update && apt -y upgrade
+RUN apt-get install ffmpeg
+RUN apt install -y python3-pip
+RUN apt install -y g++
 
+RUN pip3 install -r requirements.txt
+CMD ["python3", "bot/main.py"]
