@@ -3,7 +3,7 @@ setup(
     name='OWR',
     version='2.3',
     description='Obscene word recognition package',
-    url='https://github.com/VladVslv/OWR',
+    url='https://github.com/RuslanGaliullin/FFixTelegramBot/tree/OWR',
     author='Vlad Vasilev',
     author_email='vpvasilev.work@gmail.com',
     license='GNU GENERAL PUBLIC LICENSE',
