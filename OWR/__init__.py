@@ -94,7 +94,7 @@ class ObscenityWordsRecognizer:
         result = 0
         res_ow = ''
         word_t = ObscenityWordsRecognizer.soundex.transform(word)
-        s_len = int(len(word_t) / 3)
+        s_len = (int(len(word_t) / 3) + 1) if (len(word_t) >= int(len(word_t) / 3) + 1) else len(word_t)
         for ow in self.__phonetic_word_codes.keys():
             if word_t[0:s_len] == ObscenityWordsRecognizer.soundex.transform(ow)[0:s_len]:
                 indexes = pylcs.lcs_sequence_idx(word, ow)
