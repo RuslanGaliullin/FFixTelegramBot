@@ -152,7 +152,7 @@ class ObscenityWordsRecognizer:
                     end = end_timestamps[-1] * (sample_rate // 1000)
                 ow_timestamps.append((start, end))
         # ows - all recognised words
-        if evaluation:
+        if evaluation != None:
             evaluation.extend(ows)
         return ow_timestamps
 
