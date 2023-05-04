@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.py
+OWR/__init__.py
+OWR.egg-info/PKG-INFO
+OWR.egg-info/SOURCES.txt
+OWR.egg-info/dependency_links.txt
+OWR.egg-info/requires.txt
+OWR.egg-info/top_level.txt
+OWR/data/obscenity_words.json
