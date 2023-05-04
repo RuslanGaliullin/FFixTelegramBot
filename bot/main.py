@@ -105,6 +105,8 @@ def answer_callback_query(callback_query: types.CallbackQuery):
             AudioSegment.from_wav(file_path).export(file_path.split('.')[0] + '.mp3', format='mp3')
             # os.remove(file_path)
             file_path = file_path.split('.')[0] + '.mp3'
+        # os.rename(file_path, os.path.join('recieved_files', file_path.split(split_string)[1]))
+        # file_path = os.path.join('recieved_files', file_path.split(split_string)[1])
         file = open(file_path, 'rb')
         if callback_query.data[1] == 'v':
             bot.send_voice(callback_query.from_user.id, file)
