@@ -54,8 +54,8 @@ class ObscenityWordsRecognizer:
 
     def __init__(self):
         self.ASR = SpeechRecognitionModel("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
-        self.__phonetic_word_codes = self.__get_phonetic_for_words(
-            os.path.split(inspect.getfile(self.__class__))[0] + '/data/obscenity_words.json')
+        self.__phonetic_word_codes = self.__get_phonetic_for_words(os.path.join(
+            os.path.split(inspect.getfile(self.__class__))[0], 'data', 'obscenity_words.json'))
         logger.info("Initialization of the model has been completed")
 
     def mute_words(self, audio_path: str, mode: str):
@@ -152,39 +152,38 @@ class ObscenityWordsRecognizer:
                     end = end_timestamps[-1] * (sample_rate // 1000)
                 ow_timestamps.append((start, end))
         # ows - all recognised words
-        if evaluation != None:
+        if evaluation is not None:
             evaluation.extend(ows)
         return ow_timestamps
 
-    def evaluate(self, audio_transcript_data):
+    def evaluate(self, audio_transcript_data) -> dict:
         data = []
-        cer_ow = 0
-        wer_ow = 0
         true_positive = 0
         total = 0
-        for audio_path, transcript_path in audio_transcript_data:
+        for test in audio_transcript_data:
             prediction_ow = []
-            text = open(transcript_path).read().strip()
-            data.append({'path': audio_path, 'transcription': text})
-            reference_ow = [i for i in self.__phonetic_word_codes.keys() if i in text]
-            self.__find_words(self.ASR.transcribe([audio_path])[0], 16000, prediction_ow)
+            text = open(test["transcript_path"]).read().strip()
+            data.append({'path': test["audio_path"], 'transcription': text})
+            reference_ow = [i for i in text.split() if i in self.__phonetic_word_codes.keys()]
+            reference_ow.sort()
+            self.__find_words(self.ASR.transcribe([test["audio_path"]])[0], 16000, prediction_ow)
+            prediction_ow.sort()
             true_positive += len(prediction_ow)
             total += len(reference_ow)
-            cer_ow = cer(prediction_ow, reference_ow)
-            wer_ow = wer(prediction_ow, reference_ow)
-
+        if total == 0:
+            total = 1
+            true_positive = 0
         return {"total cer": self.ASR.evaluate(data)["cer"],
                 "total wer": self.ASR.evaluate(data)["wer"],
-                "obscenity cer": cer_ow,
-                "obscenity wer": wer_ow,
                 "rate of word detection": true_positive / total}
 
 
 if __name__ == "__main__":
     detector = ObscenityWordsRecognizer()
-    dir_path = os.path.join(os.getcwd(), "data")
-    file_name = "audio_03.wav"
-    playsound(os.path.join(dir_path, file_name))
-    a = detector.mute_words(os.path.join(dir_path, file_name), "b")
-    print(a)
-    playsound(os.path.join(dir_path, "result_" + file_name))
+    evaluation = detector.evaluate(
+        [{'audio_path': os.path.join("test", "audio", f'audio_{i}.wav'),
+          'transcript_path': os.path.join("test", "transcript", f'transcript_{i}.txt')}
+         for i in range(6)
+         ])
+    with open(os.path.join("test", 'result.json'), 'w') as outfile:
+        outfile.write(json.dumps(evaluation))
