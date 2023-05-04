@@ -96,6 +96,8 @@ def answer_callback_query(callback_query: types.CallbackQuery):
     if len(files) > int(callback_query.data[2:]) and os.path.exists(files[int(callback_query.data[2:])]):
         bot.send_message(callback_query.from_user.id, 'Выполняется обработка файла')
         file_path = files[int(callback_query.data[2:])]
+        with open("test_files.txt", 'a') as file:
+            file.write(file_path + '\n')
         result_file_path = detector.mute_words(file_path, callback_query.data[0])
         # os.remove(file_path)
         file_path = result_file_path
