@@ -1,0 +1,22 @@
+from setuptools import setup, find_packages
+setup(
+    name='OWR',
+    version='2.3',
+    description='Obscene word recognition package',
+    url='https://github.com/VladVslv/OWR',
+    author='Vlad Vasilev',
+    author_email='vpvasilev.work@gmail.com',
+    license='GNU GENERAL PUBLIC LICENSE',
+    packages=['OWR'],
+    package_data={'': ['data/obscenity_words.json']},
+    include_package_data=True,
+    install_requires=['scikit-learn',
+                      'huggingsound',
+                      'librosa',
+                      'levenshtein',
+                      'soundfile',
+                      'fonetika',
+                      'numpy',
+                      'playsound',
+                      'pylcs'],
+)

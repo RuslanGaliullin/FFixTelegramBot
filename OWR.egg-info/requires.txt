@@ -1,0 +1,9 @@
+fonetika
+huggingsound
+levenshtein
+librosa
+numpy
+playsound
+pylcs
+scikit-learn
+soundfile
