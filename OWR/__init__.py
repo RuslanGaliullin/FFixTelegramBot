@@ -94,9 +94,11 @@ class ObscenityWordsRecognizer:
         result = 0
         res_ow = ''
         word_t = ObscenityWordsRecognizer.soundex.transform(word)
-        s_len = (int(len(word_t) / 3) + 1) if (len(word_t) >= int(len(word_t) / 3) + 1) else len(word_t)
+        s_len = min(int((len(word_t) + 1) / 2), len(word_t))
         for ow in self.__phonetic_word_codes.keys():
-            if word_t[0:s_len] == ObscenityWordsRecognizer.soundex.transform(ow)[0:s_len]:
+            ow_t = ObscenityWordsRecognizer.soundex.transform(ow)
+            ow_s = min(len(ow_t), s_len)
+            if word_t[0:ow_s] == ow_t[0:ow_s]:
                 indexes = pylcs.lcs_sequence_idx(word, ow)
                 probability = 0
                 for index, value in enumerate(indexes):
@@ -187,3 +189,4 @@ if __name__ == "__main__":
          ])
     with open(os.path.join("test", 'result.json'), 'w') as outfile:
         outfile.write(json.dumps(evaluation))
+
