@@ -38,7 +38,7 @@ def send_welcome(message):
                                       "- Минимальная частота дискретизации: 16 кГц\n"
                                       "- Минимальная глубина кодирования: 16 бит\n\n"
                                       "Создатели бота:\n<a href='https://t.me/vladvslv'>Васильев Владислав</a>\n"
-                                      "<a href='https://t.me/R_Galiullin'>Галлиулин Руслан</a>", parse_mode="HTML")
+                                      "<a href='https://t.me/R_Galiullin'>Галиуллин Руслан</a>", parse_mode="HTML")
 
 
 @bot.message_handler(content_types=['voice'])
