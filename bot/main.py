@@ -132,18 +132,4 @@ def answer_callback_query(callback_query: types.CallbackQuery):
 
 
 if __name__ == "__main__":
-    # detector.evaluate(
-    #     [{'audio_path': os.path.join("data", "test", "audio", 'audio_0.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_0.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_1.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_1.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_2.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_2.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_3.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_3.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_4.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_4.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_5.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_5.txt')},
-    #      ])
     bot.infinity_polling(none_stop=True)
