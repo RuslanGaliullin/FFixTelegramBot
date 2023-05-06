@@ -1,12 +1,13 @@
 {
   "bos_token": "<s>",
-  "clean_up_tokenization_spaces": true,
   "do_lower_case": false,
   "eos_token": "</s>",
   "model_max_length": 1000000000000000019884624838656,
+  "name_or_path": "jonatasgrosman/wav2vec2-large-xlsr-53-russian",
   "pad_token": "<pad>",
   "processor_class": "Wav2Vec2Processor",
   "replace_word_delimiter_char": " ",
+  "special_tokens_map_file": "/Users/ruslangaliullin/.cache/huggingface/hub/models--jonatasgrosman--wav2vec2-large-xlsr-53-russian/snapshots/2329100508896c6d9b157019803ab5601e6f3406/special_tokens_map.json",
   "tokenizer_class": "Wav2Vec2CTCTokenizer",
   "unk_token": "<unk>",
   "word_delimiter_token": "|"
