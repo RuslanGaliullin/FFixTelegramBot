@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from huggingsound import SpeechRecognitionModel
+from huggingsound import SpeechRecognitionModel, Decoder
 import librosa
 import Levenshtein
 import soundfile as sf
@@ -27,16 +27,44 @@ class ObscenityWordsRecognizer:
 
     @staticmethod
     def __get_phonetic_for_words(path_to_words: str) -> dict[str, str]:
-        soundex = RussianSoundex(delete_first_letter=True)
+        """
+        Сохранение фонограм для всех слов из базы нецензурных слов.
+
+        Parameters:
+        ----------
+            path_to_words: str
+                Json-файл со словарем нецензурных слов
+                
+        Returns:
+        ----------
+            dict[str, str]]:
+                Словарь типа слово - код для всех нецензурных слов
+        """
+
         result_word_to_code = {}
         with open(path_to_words, 'rb') as fp:
             words = json.load(fp)
         for i in words:
-            result_word_to_code[i] = soundex.transform(i)
+            result_word_to_code[i] = ObscenityWordsRecognizer.soundex.transform(i)
         return result_word_to_code
 
     @staticmethod
     def __cover_by_sound(samples: np.ndarray[np.float32], words_to_delete: list[tuple], mode: str) -> None:
+        """
+        Перекрытие семплов звуком в указанных подотрезках.
+
+        Parameters:
+        ----------
+            samples: np.ndarray[np.float32]
+                Изначальный массив семплов
+
+            words_to_delete: list[tuple]
+                Список пар вида (начало, конец) с индексами подотрезков для наложения звука
+
+            mode: str
+                Тип изменения: 's' - тишина, 'b' - характерный звук 'бип'
+        """
+
         if mode == 's':
             for i in words_to_delete:
                 if samples.ndim == 1:
@@ -58,7 +86,31 @@ class ObscenityWordsRecognizer:
             os.path.split(inspect.getfile(self.__class__))[0], 'data', 'obscenity_words.json'))
         logger.info("Initialization of the model has been completed")
 
-    def mute_words(self, audio_path: str, mode: str):
+    def mute_words(self, audio_path: str, mode: str, batch_size: Optional[int] = 1, decoder: Optional[Decoder] = None):
+        """
+        Наложение звука поверх нецензурных слов из файла.
+
+        Parameters:
+        ----------
+            audio_path: str
+                Путь до аудиофайла для поиска нецензурных слов в формате .wav с частотой дискретизации от 16кГц и
+                глубиной кодирования от 16 бит
+
+            mode: str
+                Тип изменения: 's' - тишина, 'b' - характерный звук 'бип'
+
+            batch_size: Optional[int] = 1
+                Размер batch'а, используемый для вывода
+
+            decoder: Optional[Decoder] = None
+                Декодер, используемый для транскрипции. Если вы не укажете это, движок будет использовать Greedy Decoder
+
+        Returns:
+        ----------
+            str:
+                Путь до аудио-файла с перекрытыми нецензурными словами указанным способом mode
+        """
+
         audio_file = sf.SoundFile(audio_path)
         origin_samples = audio_file.read()
         origin_sr = audio_file.samplerate
@@ -66,9 +118,8 @@ class ObscenityWordsRecognizer:
             f"Audio is loaded with {origin_sr} sample rate, {audio_file.channels} channels, type {audio_file.subtype}")
         resampled_audio = self.resample_audio(audio_path, 16000)
 
-        # y, sr = librosa.load(resampled_audio, mono=True, sr=16000)
-
-        words_to_delete = self.__find_words(self.ASR.transcribe([resampled_audio])[0], origin_sr)
+        words_to_delete = self.__find_words(
+            self.ASR.transcribe([resampled_audio], batch_size=batch_size, decoder=decoder)[0], origin_sr)
         self.__cover_by_sound(origin_samples, words_to_delete, mode)
 
         directory = os.path.dirname(audio_path)
@@ -82,6 +133,23 @@ class ObscenityWordsRecognizer:
 
     @staticmethod
     def resample_audio(audio_path: str, target_rate: int) -> str:
+        """
+        Приведение аудиофайла к типу с частотой дискретизации 16кГц в одноканальном режиме.
+
+        Parameters:
+        ----------
+            audio_path: str
+                Путь до аудиофайла c расширением .wav для изменения параметров
+
+            target_rate: int
+                Целевая частота для изменения
+
+        Returns:
+        ----------
+            str:
+                Путь до аудиофайла с измененными параметрами каналов и частоты дискретизации
+        """
+
         directory = os.path.dirname(audio_path)
         full_name = os.path.basename(audio_path)
         y, sr = librosa.load(audio_path)
@@ -91,6 +159,23 @@ class ObscenityWordsRecognizer:
         return os.path.join(directory, "RS_" + full_name)
 
     def __ow_probability(self, word: str, probabilities: list[float]) -> (float, int):
+        """
+        Вычисление вероятности принадлежности распознанного слова к классу нецензурных.
+
+        Parameters:
+        ----------
+            word: str
+                Проверяемое слово
+
+            probabilities: float
+                Степень уверенности в каждой букве в word
+
+        Returns:
+        ----------
+            float:
+                Итоговая вероятность того, что слово является нецензурным
+        """
+
         result = 0
         res_ow = ''
         word_t = ObscenityWordsRecognizer.soundex.transform(word)
@@ -111,7 +196,30 @@ class ObscenityWordsRecognizer:
                     res_ow = ow
         return int(result * 10) / 10, res_ow
 
-    def __find_words(self, transcribe_result: dir, sample_rate: int, evaluation: list[str] = None) -> list[tuple]:
+    def __find_words(self, transcribe_result: dir, sample_rate: int, evaluation_list: list[str] = None) -> list[tuple]:
+        """
+        Нахождение диапазонов в массиве семплов исходного аудио, которые обозначают нецензурные слова.
+
+        Parameters:
+        ----------
+            transcribe_result: list[dir]
+                Словарь с результатом транскрибирования аудиофайла в виде:
+                {
+                    "transcription": str,
+                    "start_timestemps": list[int],
+                    "end_timestemps": list[int],
+                    "probabilities": list[float]
+                }
+
+            sample_rate: int
+                Частота дискретизации исходного аудиофайла
+
+        Returns:
+        ----------
+            list[tuple]:
+                Список подотрезков, которые соответствуют нецензурным в списке сэмплов
+        """
+
         o_words = []
         sentence = transcribe_result['transcription']
         logger.info(f"Transcription: {sentence}")
@@ -153,12 +261,52 @@ class ObscenityWordsRecognizer:
                 if end > end_timestamps[-1] * (sample_rate // 1000):
                     end = end_timestamps[-1] * (sample_rate // 1000)
                 ow_timestamps.append((start, end))
+
         # ows - all recognised words
-        if evaluation is not None:
-            evaluation.extend(ows)
+        if evaluation_list is not None:
+            evaluation_list.extend(ows)
         return ow_timestamps
 
-    def evaluate(self, audio_transcript_data) -> dict:
+    def evaluate(self, audio_transcript_data: list[dict], decoder: Optional[Decoder] = None,
+                 metrics_batch_size: Optional[int] = None) -> dict:
+        """
+        Оценить работу распознователя.
+
+        Parameters:
+        ----------
+            audio_transcript_data: list[dict]
+                Список словарей обозначающих путь до тестового айдиофайла и его правильной транскрипции.
+                Словари должны имень следующую структуру:
+
+                [{
+                    "transcript_path": str,
+                    "audio_path": str,
+                }, ...]
+
+            metrics_batch_size: Optional[int] = None
+                Размер batch'ей для использования при оценке. Когда указано это значение, функция оценки преобразует данные в
+                batch'и указанного размера и вычислит показатели для каждого batch'а.
+                После того, как все batch'и будут вычислены, функция вычислит средние показатели по всем batch'ам.
+                (Вам, вероятно, потребуется определить это, если у вас проблемы с памятью).
+
+            decoder: Optional[Decoder] = None
+                Decoder to use for transcription. If you don't specify this, the engine will use the GreedyDecoder.
+
+            text_normalizer: Callable[[str], str] = None
+                Функция для нормализации транскрипций перед оценкой качества.
+
+        Returns:
+        ----------
+            dict:
+                Словарь содержащие метрики качества:
+
+                {
+                    "total cer": float,
+                    "total wer": float,
+                    "rate of word detection": float доля найденных нецензурных слов
+                }
+        """
+
         data = []
         true_positive = 0
         total = 0
