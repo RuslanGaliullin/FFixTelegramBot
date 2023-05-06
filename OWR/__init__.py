@@ -34,7 +34,7 @@ class ObscenityWordsRecognizer:
         ----------
             path_to_words: str
                 Json-файл со словарем нецензурных слов
-                
+
         Returns:
         ----------
             dict[str, str]]:
