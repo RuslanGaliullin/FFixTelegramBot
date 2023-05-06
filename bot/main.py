@@ -25,16 +25,16 @@ def send_welcome(message):
                                       "Для обработки файла просто отправьте его личным сообщением.\n\n"
                                       "Требования к обрабатываемому аудиофайлу:\n"
                                       "- Расширение: .wav или .mp3\n"
-                                      "- Максимальный размер: 100 Мб\n"
+                                      "- Максимальный размер: 20 Мб\n"
                                       "- Минимальная частота дискретизации: 16 кГц\n"
                                       "- Минимальная глубина кодирования: 16 бит\n\n")
 
 
 @bot.message_handler(commands=['help'])
-def send_welcome(message):
+def send_help(message):
     bot.send_message(message.chat.id, "Требования к обрабатываемому аудиофайлу:\n"
                                       "- Расширение .wav или .mp3\n"
-                                      "- Максимальный размер: 100 Мб\n"
+                                      "- Максимальный размер: 20 Мб\n"
                                       "- Минимальная частота дискретизации: 16 кГц\n"
                                       "- Минимальная глубина кодирования: 16 бит\n\n"
                                       "Создатели бота:\n<a href='https://t.me/vladvslv'>Васильев Владислав</a>\n"
@@ -42,7 +42,7 @@ def send_welcome(message):
 
 
 @bot.message_handler(content_types=['voice'])
-def voice_message(message):
+def voice_reply(message):
     file_info = bot.get_file(message.voice.file_id)
     path_to_file = 'recieved_files/' + str(file_info.file_unique_id) + split_string + 'voice.ogg'
     downloaded_file = bot.download_file(file_info.file_path)
@@ -65,7 +65,7 @@ def voice_message(message):
 
 
 @bot.message_handler(content_types=['audio'])
-def message_reply(message):
+def audio_reply(message):
     file_info = bot.get_file(message.audio.file_id)
     path_to_file = 'recieved_files/' + str(file_info.file_unique_id) + split_string + message.audio.file_name
     if not path_to_file.split('.')[1] in ['wav', 'mp3']:
@@ -89,7 +89,7 @@ def message_reply(message):
 
 
 @bot.callback_query_handler(func=lambda c: c.data[0] == "s" or c.data[0] == "b")
-def answer_callback_query(callback_query: types.CallbackQuery):
+def process_audio(callback_query: types.CallbackQuery):
     bot.answer_callback_query(callback_query.id)
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
@@ -119,7 +119,7 @@ def answer_callback_query(callback_query: types.CallbackQuery):
 
 
 @bot.callback_query_handler(func=lambda c: c.data[0] == "c")
-def answer_callback_query(callback_query: types.CallbackQuery):
+def cancel_processing(callback_query: types.CallbackQuery):
     bot.answer_callback_query(callback_query.id)
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
