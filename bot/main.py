@@ -21,7 +21,7 @@ detector = ObscenityWordsRecognizer()
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     bot.send_message(message.chat.id, "Добро пожаловать! \nДанный бот создан для того, чтобы упростить "
-                                      "удаление цецензурных слов из аудиофайла путём их запикивания или приглушения.\n\n"
+                                      "удаление нецензурных слов из аудиофайла путём их запикивания или приглушения.\n\n"
                                       "Для обработки файла просто отправьте его личным сообщением.\n\n"
                                       "Требования к обрабатываемому аудиофайлу:\n"
                                       "- Расширение: .wav или .mp3\n"
@@ -38,7 +38,7 @@ def send_help(message):
                                       "- Минимальная частота дискретизации: 16 кГц\n"
                                       "- Минимальная глубина кодирования: 16 бит\n\n"
                                       "Создатели бота:\n<a href='https://t.me/vladvslv'>Васильев Владислав</a>\n"
-                                      "<a href='https://t.me/R_Galiullin'>Галлиулин Руслан</a>", parse_mode="HTML")
+                                      "<a href='https://t.me/R_Galiullin'>Галиуллин Руслан</a>", parse_mode="HTML")
 
 
 @bot.message_handler(content_types=['voice'])
@@ -132,18 +132,4 @@ def cancel_processing(callback_query: types.CallbackQuery):
 
 
 if __name__ == "__main__":
-    # detector.evaluate(
-    #     [{'audio_path': os.path.join("data", "test", "audio", 'audio_0.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_0.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_1.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_1.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_2.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_2.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_3.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_3.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_4.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_4.txt')},
-    #      {'audio_path': os.path.join("data", "test", "audio", 'audio_5.wav'),
-    #       'transcript_path': os.path.join("data", "test", "transcript", 'transcript_5.txt')},
-    #      ])
     bot.infinity_polling(none_stop=True)
