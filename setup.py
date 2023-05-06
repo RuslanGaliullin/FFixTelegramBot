@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name='OWR',
-    version='2.6.1',
+    version='2.7.1',
     description='Obscene word recognition package',
     url='https://github.com/RuslanGaliullin/FFixTelegramBot/tree/OWR',
     author='Vlad Vasilev',
