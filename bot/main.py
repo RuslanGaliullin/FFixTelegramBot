@@ -15,7 +15,7 @@ else:
     for file in os.listdir('recieved_files'):
         pass  # UNDO
         # os.remove(os.path.join('recieved_files', file))
-detector = ObscenityWordsRecognizer(device='cuda')
+detector = ObscenityWordsRecognizer()
 
 
 @bot.message_handler(commands=['start'])
