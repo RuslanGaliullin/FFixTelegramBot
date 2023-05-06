@@ -44,15 +44,14 @@ def send_help(message):
 @bot.message_handler(content_types=['voice'])
 def voice_reply(message):
     file_info = bot.get_file(message.voice.file_id)
-    path_to_file = 'recieved_files/' + str(file_info.file_unique_id) + split_string + 'voice.ogg'
+    path_to_file = os.path.join('recieved_files', str(file_info.file_unique_id) + split_string + 'voice.ogg')
     downloaded_file = bot.download_file(file_info.file_path)
     with open(path_to_file, 'wb') as f:
         f.write(downloaded_file)
 
     data, sr = soundfile.read(path_to_file)
     soundfile.write(path_to_file.split('.')[0] + '.wav', data, sr)
-    # AudioSegment.from_ogg(path_to_file).export(path_to_file.split('.')[0] + '.wav', format='wav')
-    # os.remove(path_to_file)
+    os.remove(path_to_file)
     path_to_file = path_to_file.split('.')[0] + '.wav'
     extension = 'v'
 
@@ -67,7 +66,8 @@ def voice_reply(message):
 @bot.message_handler(content_types=['audio'])
 def audio_reply(message):
     file_info = bot.get_file(message.audio.file_id)
-    path_to_file = 'recieved_files/' + str(file_info.file_unique_id) + split_string + message.audio.file_name
+    path_to_file = os.path.join('recieved_files',
+                                str(file_info.file_unique_id) + split_string + message.audio.file_name)
     if not path_to_file.split('.')[1] in ['wav', 'mp3']:
         bot.send_message(message.chat.id, 'Неверный формат файла.')
         return
@@ -77,9 +77,14 @@ def audio_reply(message):
     extension = 'w'
     if path_to_file.split('.')[1] == 'mp3':
         AudioSegment.from_mp3(path_to_file).export(path_to_file.split('.')[0] + '.wav', format='wav')
-        # os.remove(path_to_file)
+        os.remove(path_to_file)
         path_to_file = path_to_file.split('.')[0] + '.wav'
         extension = 'm'
+    sf_file = soundfile.SoundFile(path_to_file)
+    if not (sf_file.samplerate >= 16000 and sf_file.subtype in ['PCM_24', 'PCM_16', 'PCM_32', 'FLOAT', 'DOUBLE']):
+        bot.send_message(message.chat.id, 'Неверный формат файла.')
+        os.remove(path_to_file)
+        return
     files.append(path_to_file)
     beep = types.InlineKeyboardButton('Запикать', callback_data='b' + extension + str(len(files) - 1))
     silence = types.InlineKeyboardButton('Приглушить', callback_data='s' + extension + str(len(files) - 1))
