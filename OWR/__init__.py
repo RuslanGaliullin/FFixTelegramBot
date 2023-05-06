@@ -7,11 +7,10 @@ import Levenshtein
 import soundfile as sf
 from fonetika.soundex import RussianSoundex
 import numpy as np
-from playsound import playsound
 import pylcs
 import logging
 import inspect
-from huggingsound.metrics import cer, wer
+from typing import Optional
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -52,8 +51,9 @@ class ObscenityWordsRecognizer:
                     samples[i[0]:i[1]] = np.tile((librosa.tone(600, length=i[1] - i[0], sr=16000)),
                                                  (samples.ndim, 1)).transpose()
 
-    def __init__(self):
-        self.ASR = SpeechRecognitionModel("rmgaliullin/wav2vec2-based-obscenity-detector", letter_case='lowercase')
+    def __init__(self, device: Optional[str] = "cpu"):
+        self.ASR = SpeechRecognitionModel("rmgaliullin/wav2vec2-based-obscenity-detector", device=device,
+                                          letter_case='lowercase')
         self.__phonetic_word_codes = self.__get_phonetic_for_words(os.path.join(
             os.path.split(inspect.getfile(self.__class__))[0], 'data', 'obscenity_words.json'))
         logger.info("Initialization of the model has been completed")
@@ -189,4 +189,3 @@ if __name__ == "__main__":
          ])
     with open(os.path.join("test", 'result.json'), 'w') as outfile:
         outfile.write(json.dumps(evaluation))
-
