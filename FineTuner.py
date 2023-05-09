@@ -16,7 +16,6 @@ def load_data(path_to_audio: str, path_to_transcript: str):
         audio_path = path.replace("transcript", "audio").replace("txt", "wav")
         data.append(
             {"path": os.path.join(audio_data_dir, audio_path), "transcription": text})
-    print(data)
 
     return data
 
