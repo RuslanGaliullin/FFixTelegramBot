@@ -20,6 +20,16 @@ detector = ObscenityWordsRecognizer()
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    """
+    По команде /start выполняется отправление пользователю инструкцию по использовании бота,
+    а также требований по формату входных данных. 
+
+    Параметры:
+    ----------
+        message: 
+            сообщение пользователя
+    """
+    
     bot.send_message(message.chat.id, "Добро пожаловать! \nДанный бот создан для того, чтобы упростить "
                                       "удаление нецензурных слов из аудиофайла путём их запикивания или приглушения.\n\n"
                                       "Для обработки файла просто отправьте его личным сообщением или запишите голосовое сообщение.\n\n"
@@ -32,6 +42,16 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['help'])
 def send_help(message):
+    """
+    По команде /help выполняется отправление пользователю требований по формату входных данных,
+    а также контакты создателей бота. 
+
+    Параметры:
+    ----------
+        message: 
+            сообщение пользователя
+    """
+    
     bot.send_message(message.chat.id, "Требования к обрабатываемому аудиофайлу:\n"
                                       "- Расширение .wav или .mp3\n"
                                       "- Максимальный размер: 20 Мб\n"
@@ -43,6 +63,16 @@ def send_help(message):
 
 @bot.message_handler(content_types=['voice'])
 def voice_reply(message):
+    """
+    При отправке голосового сообщения пользователем выполняется сохранение аудио в системе в формате .wav,
+    а также отправка всплывающего меню с вариантами обработки файла. 
+
+    Параметры:
+    ----------
+        message: 
+            сообщение пользователя
+    """
+    
     file_info = bot.get_file(message.voice.file_id)
     path_to_file = os.path.join('recieved_files', str(file_info.file_unique_id) + split_string + 'voice.ogg')
     downloaded_file = bot.download_file(file_info.file_path)
@@ -65,6 +95,17 @@ def voice_reply(message):
 
 @bot.message_handler(content_types=['audio'])
 def audio_reply(message):
+    """
+    При отправке аудифайла пользователем выполняется проверка файла на соответствие требованиям формату 
+    входных данных, при несоответствии выводится сообщение о неправильном формате, в противном случае выполняется 
+    сохранение аудио в системе в формате .wav, а также отправка всплывающего меню с вариантами обработки файла. 
+
+    Параметры:
+    ----------
+        message: 
+            сообщение пользователя
+    """
+    
     file_info = bot.get_file(message.audio.file_id)
     path_to_file = os.path.join('recieved_files',
                                 str(file_info.file_unique_id) + split_string + message.audio.file_name)
@@ -95,6 +136,16 @@ def audio_reply(message):
 
 @bot.callback_query_handler(func=lambda c: c.data[0] == "s" or c.data[0] == "b")
 def process_audio(callback_query: types.CallbackQuery):
+    """
+    Обработка запроса на удаление нецензурных слов из аудиофайла: выполняется закрытие всплывающего меню, обработка
+    аудиофайла, конвертация результата в исходных формат, отправка файла пользователю и удаление аудио из системы. 
+
+    Параметры:
+    ----------
+        callback_query: 
+            пришедший запрос
+    """
+    
     bot.answer_callback_query(callback_query.id)
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
@@ -125,6 +176,16 @@ def process_audio(callback_query: types.CallbackQuery):
 
 @bot.callback_query_handler(func=lambda c: c.data[0] == "c")
 def cancel_processing(callback_query: types.CallbackQuery):
+    """
+    Обработка запроса на отмену удаления нецензурных слов из файла: выполняется закрытие всплывающего меню, удаление файла
+    из системы, а также отправка сообщение пользователю об успешной отмене обработки. 
+
+    Параметры:
+    ----------
+        callback_query: 
+            пришедший запрос
+    """
+    
     bot.answer_callback_query(callback_query.id)
     bot.delete_message(chat_id=callback_query.message.chat.id,
                        message_id=callback_query.message.message_id)
