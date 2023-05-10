@@ -4,7 +4,7 @@ import os
 import argparse, sys
 
 
-def load_data(path_to_audio: str, path_to_transcript: str):
+def load_data(path_to_audio: str, path_to_transcript: str) -> list[dict]:
     audio_data_dir = path_to_audio
     transcript_data_dir = path_to_transcript
 
