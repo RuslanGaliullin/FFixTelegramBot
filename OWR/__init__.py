@@ -28,7 +28,7 @@ class ObscenityWordsRecognizer:
     @staticmethod
     def __get_phonetic_for_words(path_to_words: str) -> dict[str, str]:
         """
-        Сохранение фонограм для всех слов из базы нецензурных слов.
+        Сохранение фонограмм для всех слов из базы нецензурных слов.
 
         Parameters:
         ----------
