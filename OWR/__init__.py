@@ -37,7 +37,7 @@ class ObscenityWordsRecognizer:
 
         Returns:
         ----------
-            dict[str, str]]:
+            dict[str, str]:
                 Словарь типа слово - код для всех нецензурных слов
         """
 
