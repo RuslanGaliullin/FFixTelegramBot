@@ -35,9 +35,10 @@ def fine_tune(train_data: list[dir], device: str = 'cpu'):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
+    if len(sys.argv) != 8:
         print(
             "python FineTuner.py --audio --transcript --percent --evaluation --device --push")
+        exit(-1)
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--audio", help="path to dir with audio files")
