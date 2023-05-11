@@ -13,8 +13,7 @@ if not os.path.isdir('recieved_files'):
     os.mkdir('recieved_files')
 else:
     for file in os.listdir('recieved_files'):
-        pass  # UNDO
-        # os.remove(os.path.join('recieved_files', file))
+        os.remove(os.path.join('recieved_files', file))
 detector = ObscenityWordsRecognizer()
 
 
@@ -152,24 +151,23 @@ def process_audio(callback_query: types.CallbackQuery):
     if len(files) > int(callback_query.data[2:]) and os.path.exists(files[int(callback_query.data[2:])]):
         bot.send_message(callback_query.from_user.id, 'Выполняется обработка файла')
         file_path = files[int(callback_query.data[2:])]
-        with open("test_files.txt", 'a') as file:
-            file.write(file_path + '\n')
+
         result_file_path = detector.mute_words(file_path, callback_query.data[0])
-        # os.remove(file_path)
+        os.remove(file_path)
         file_path = result_file_path
         if callback_query.data[1] == 'm':
             AudioSegment.from_wav(file_path).export(file_path.split('.')[0] + '.mp3', format='mp3')
-            # os.remove(file_path)
+            os.remove(file_path)
             file_path = file_path.split('.')[0] + '.mp3'
-        # os.rename(file_path, os.path.join('recieved_files', file_path.split(split_string)[1]))
-        # file_path = os.path.join('recieved_files', file_path.split(split_string)[1])
+        os.rename(file_path, os.path.join('recieved_files', file_path.split(split_string)[1]))
+        file_path = os.path.join('recieved_files', file_path.split(split_string)[1])
         file = open(file_path, 'rb')
         if callback_query.data[1] == 'v':
             bot.send_voice(callback_query.from_user.id, file)
         else:
             bot.send_audio(callback_query.from_user.id, file)
         file.close()
-        # os.remove(file_path)
+        os.remove(file_path)
     else:
         bot.send_message(callback_query.message.chat.id, 'Файл удалён из системы')
 
@@ -191,8 +189,8 @@ def cancel_processing(callback_query: types.CallbackQuery):
                        message_id=callback_query.message.message_id)
     if len(files) > int(callback_query.data[2:]) and os.path.exists(files[int(callback_query.data[2:])]):
         file_path = files[int(callback_query.data[2:])]
+        os.remove(file_path)
         bot.send_message(callback_query.from_user.id, 'Обработка отменена')
-        # os.remove(file_path)
     else:
         bot.send_message(callback_query.message.chat.id, 'Файл удалён из системы')
 
