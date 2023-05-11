@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--push", help="flag 0 or 1 save weights in hugging face hub or not")
     args = parser.parse_args()
     if args.evaluation == '0':
-        X_train, X_test = load_data(args.audio, args.transcript)
+        X_train, X_test = load_data(args.audio, args.transcript), []
     else:
         X_train, X_test = train_test_split(load_data(args.audio, args.transcript), test_size=float(args.percent))
 
