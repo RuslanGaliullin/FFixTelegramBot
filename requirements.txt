@@ -1,3 +1,4 @@
 accelerate
 scikit-learn
+huggingface-hub
 huggingsound
